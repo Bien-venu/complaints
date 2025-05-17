@@ -1,0 +1,13 @@
+# Node.js backend (example)
+backend/node_modules
+backend/.env
+
+# Frontend (example - Next.js, React, Vue, Angular)
+frontend/node_modules
+frontend/.next
+frontend/out
+frontend/build
+frontend/dist
+
+# Common
+.DS_Store

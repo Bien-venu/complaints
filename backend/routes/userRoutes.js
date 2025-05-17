@@ -1,0 +1,21 @@
+const express = require("express");
+const userController = require("../controllers/userController");
+const authController = require("../controllers/authController");
+
+const router = express.Router();
+
+// Protect all routes after this middleware
+router.use(authController.protect);
+
+router.get(
+  "/",
+  authController.restrictTo("super_admin", "district_admin"),
+  userController.getAllUsers
+);
+router.post(
+  "/:id/assign-role",
+  authController.restrictTo("super_admin", "district_admin"),
+  userController.assignRole
+);
+
+module.exports = router;
