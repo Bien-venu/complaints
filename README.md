@@ -211,7 +211,7 @@ Please remember that these are for development and testing and should not be use
 
 ## 🔗 GitHub & Contribution
 
-📌 **Repository:** [Your GitHub Link Will Be Here]
+📌 **Repository:** https://github.com/Bien-venu/complaints.git
 🤝 **Contributions Welcome\!**
 Report bugs, suggest features, or submit PRs to help improve the system\!
 
