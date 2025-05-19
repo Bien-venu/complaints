@@ -8,6 +8,8 @@ import type { Complaint, ComplaintSubmissionPayload, ApiError } from "@/types";
 
 interface ComplaintsState {
   complaints: Complaint[];
+  userComplaints: Complaint[];
+  dashboardData: any;
   loading: boolean;
   error: string | null;
   success: boolean;
@@ -15,19 +17,62 @@ interface ComplaintsState {
 
 const initialState: ComplaintsState = {
   complaints: [],
+  userComplaints: [],
+  dashboardData: null,
   loading: false,
   error: null,
   success: false,
 };
 
+
 export const fetchComplaints = createAsyncThunk<
   Complaint[],
   void,
-  { rejectValue: ApiError }
->("complaints/fetchComplaints", async (_, { rejectWithValue }) => {
+  { rejectValue: ApiError; state: { auth: { user: any } } }
+>("complaints/fetchComplaints", async (_, { rejectWithValue, getState }) => {
   try {
-    const response = await api.get("/complaints");
-    return response.complaints;
+    const { user } = getState().auth;
+    let endpoint = "/complaints";
+
+    
+    if (user?.role === "sector_admin") {
+      endpoint = "/complaints/sector";
+    } else if (user?.role === "district_admin") {
+      endpoint = "/complaints/district";
+    } else if (user?.role === "super_admin") {
+      endpoint = "/complaints"; 
+    }
+
+    const response = await api.get(endpoint);
+    return response.data.complaints;
+  } catch (error: any) {
+    return rejectWithValue(error);
+  }
+});
+
+
+export const fetchUserComplaints = createAsyncThunk<
+  Complaint[],
+  void,
+  { rejectValue: ApiError }
+>("complaints/fetchUserComplaints", async (_, { rejectWithValue }) => {
+  try {
+    const response = await api.get("/complaints/my-complaints");
+    return response.data.complaints || [];
+  } catch (error: any) {
+    return rejectWithValue(error);
+  }
+});
+
+
+export const fetchAdminDashboard = createAsyncThunk<
+  any,
+  void,
+  { rejectValue: ApiError }
+>("complaints/fetchAdminDashboard", async (_, { rejectWithValue }) => {
+  try {
+    const response = await api.get("/complaints/admin/dashboard");
+    return response.data.counts;
   } catch (error: any) {
     return rejectWithValue(error);
   }
@@ -40,7 +85,7 @@ export const submitComplaint = createAsyncThunk<
 >("complaints/submitComplaint", async (complaintData, { rejectWithValue }) => {
   try {
     const response = await api.post("/complaints", complaintData);
-    return response.complaint;
+    return response.data.complaint;
   } catch (error: any) {
     return rejectWithValue(error);
   }
@@ -52,8 +97,9 @@ export const escalateComplaint = createAsyncThunk<
   { rejectValue: ApiError }
 >("complaints/escalateComplaint", async (complaintId, { rejectWithValue }) => {
   try {
-    const response = await api.post(`/complaints/${complaintId}/escalate`, {});
-    return response.complaint;
+    
+    const response = await api.put(`/complaints/${complaintId}/escalate`, {});
+    return response.data.complaint;
   } catch (error: any) {
     return rejectWithValue(error);
   }
@@ -65,8 +111,9 @@ export const resolveComplaint = createAsyncThunk<
   { rejectValue: ApiError }
 >("complaints/resolveComplaint", async (complaintId, { rejectWithValue }) => {
   try {
-    const response = await api.post(`/complaints/${complaintId}/resolve`, {});
-    return response.complaint;
+    
+    const response = await api.put(`/complaints/${complaintId}/resolve`, {});
+    return response.data.complaint;
   } catch (error: any) {
     return rejectWithValue(error);
   }
@@ -103,6 +150,42 @@ const complaintsSlice = createSlice({
       })
 
       
+      .addCase(fetchUserComplaints.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(
+        fetchUserComplaints.fulfilled,
+        (state, action: PayloadAction<Complaint[]>) => {
+          state.loading = false;
+          state.userComplaints = action.payload;
+        }
+      )
+      .addCase(fetchUserComplaints.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          action.payload?.message || "Failed to fetch your complaints";
+      })
+
+      
+      .addCase(fetchAdminDashboard.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(
+        fetchAdminDashboard.fulfilled,
+        (state, action: PayloadAction<any>) => {
+          state.loading = false;
+          state.dashboardData = action.payload;
+        }
+      )
+      .addCase(fetchAdminDashboard.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          action.payload?.message || "Failed to fetch dashboard data";
+      })
+
+      
       .addCase(submitComplaint.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -113,6 +196,7 @@ const complaintsSlice = createSlice({
         (state, action: PayloadAction<Complaint>) => {
           state.loading = false;
           state.complaints.push(action.payload);
+          state.userComplaints.push(action.payload);
           state.success = true;
         }
       )
@@ -137,6 +221,13 @@ const complaintsSlice = createSlice({
           if (index !== -1) {
             state.complaints[index] = action.payload;
           }
+
+          const userIndex = state.userComplaints.findIndex(
+            (c) => c._id === action.payload._id
+          );
+          if (userIndex !== -1) {
+            state.userComplaints[userIndex] = action.payload;
+          }
         }
       )
       .addCase(escalateComplaint.rejected, (state, action) => {
@@ -158,6 +249,13 @@ const complaintsSlice = createSlice({
           );
           if (index !== -1) {
             state.complaints[index] = action.payload;
+          }
+
+          const userIndex = state.userComplaints.findIndex(
+            (c) => c._id === action.payload._id
+          );
+          if (userIndex !== -1) {
+            state.userComplaints[userIndex] = action.payload;
           }
         }
       )

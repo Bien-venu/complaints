@@ -16,7 +16,7 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "backend/server.js" },
-    { "src": "/(.*)", "dest": "frontend/.next/$1" },
+    { "src": "/(.*)", "dest": "frontend" },
     { "src": "/(.*)", "dest": "frontend/.nextbuild/index.html" }
   ]
 }

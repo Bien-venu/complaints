@@ -7,17 +7,23 @@ const router = express.Router();
 router.use(authController.protect);
 
 router.post("/", complaintController.submitComplaint);
+router.get("/my-complaints", complaintController.getCitizenComplaints);
+
 router.get("/sector", complaintController.getComplaintsForSectorAdmin);
 router.put(
   "/:id/escalate",
   authController.restrictTo("sector_admin"),
   complaintController.escalateToDistrictAdmin
 );
+
+router.get("/district", complaintController.getComplaintsForDistrictAdmin);
+
 router.put(
   "/:id/resolve",
   authController.restrictTo("sector_admin", "district_admin"),
   complaintController.resolveComplaint
 );
+
 router.get(
   "/admin/dashboard",
   authController.restrictTo("super_admin"),

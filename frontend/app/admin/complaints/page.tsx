@@ -30,21 +30,10 @@ const statusOptions = [
   { value: "resolved", label: "Resolved" },
 ];
 
-const categoryOptions = [
-  { value: "all", label: "All Categories" },
-  { value: "infrastructure", label: "Infrastructure" },
-  { value: "water", label: "Water" },
-  { value: "electricity", label: "Electricity" },
-  { value: "sanitation", label: "Sanitation" },
-  { value: "security", label: "Security" },
-  { value: "other", label: "Other" },
-];
-
 const sortOptions = [
   { value: "newest", label: "Newest First" },
   { value: "oldest", label: "Oldest First" },
   { value: "status", label: "By Status" },
-  { value: "category", label: "By Category" },
 ];
 
 export default function AdminComplaints() {
@@ -57,11 +46,11 @@ export default function AdminComplaints() {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   useEffect(() => {
+    
     dispatch(fetchComplaints());
   }, [dispatch]);
 
@@ -80,21 +69,19 @@ export default function AdminComplaints() {
       
       const matchesSearch =
         searchQuery === "" ||
+        complaint.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         complaint.description
           .toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
-        complaint.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        complaint.category.toLowerCase().includes(searchQuery.toLowerCase());
+        (complaint.location.district + " " + complaint.location.sector)
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase());
 
       
       const matchesStatus =
         statusFilter === "all" || complaint.status === statusFilter;
 
-      
-      const matchesCategory =
-        categoryFilter === "all" || complaint.category === categoryFilter;
-
-      return matchesSearch && matchesStatus && matchesCategory;
+      return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       
@@ -109,8 +96,6 @@ export default function AdminComplaints() {
           );
         case "status":
           return a.status.localeCompare(b.status);
-        case "category":
-          return a.category.localeCompare(b.category);
         default:
           return 0;
       }
@@ -154,6 +139,17 @@ export default function AdminComplaints() {
     }
   };
 
+  
+  const getPageTitle = () => {
+    if (user?.role === "sector_admin") {
+      return "Sector Complaints";
+    } else if (user?.role === "district_admin") {
+      return "District Complaints";
+    } else {
+      return "All Complaints";
+    }
+  };
+
   return (
     <MainLayout
       requireAuth={true}
@@ -163,10 +159,14 @@ export default function AdminComplaints() {
         <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
           <div>
             <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Manage Complaints
+              {getPageTitle()}
             </h3>
             <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              View and manage citizen complaints in your jurisdiction.
+              {user?.role === "sector_admin"
+                ? "View and manage complaints in your sector."
+                : user?.role === "district_admin"
+                ? "View and manage escalated complaints in your district."
+                : "View and manage all complaints in the system."}
             </p>
           </div>
         </div>
@@ -215,18 +215,12 @@ export default function AdminComplaints() {
             </div>
 
             {isFilterOpen && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="mt-4">
                 <Select
                   label="Status"
                   options={statusOptions}
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                />
-                <Select
-                  label="Category"
-                  options={categoryOptions}
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
                 />
               </div>
             )}
@@ -238,7 +232,7 @@ export default function AdminComplaints() {
             </div>
           ) : filteredComplaints.length === 0 ? (
             <div className="px-4 py-5 sm:p-6 text-center text-gray-500">
-              {searchQuery || statusFilter !== "all" || categoryFilter !== "all"
+              {searchQuery || statusFilter !== "all"
                 ? "No complaints match your filters."
                 : "No complaints found."}
             </div>
@@ -251,13 +245,13 @@ export default function AdminComplaints() {
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      Category
+                      Title
                     </th>
                     <th
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      Description
+                      Submitted By
                     </th>
                     <th
                       scope="col"
@@ -288,19 +282,26 @@ export default function AdminComplaints() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredComplaints.map((complaint) => (
                     <tr key={complaint._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900 capitalize">
-                          {complaint.category}
-                        </div>
-                      </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">
+                        <div className="text-sm font-medium text-gray-900">
+                          {complaint.title}
+                        </div>
+                        <div className="text-sm text-gray-500 max-w-xs truncate">
                           {complaint.description}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {complaint.user.name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {complaint.user.email}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {complaint.location}
+                          {complaint.location.sector},{" "}
+                          {complaint.location.district}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -316,6 +317,9 @@ export default function AdminComplaints() {
                             .toUpperCase() +
                             complaint.status.replace("_", " ").slice(1)}
                         </span>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Level: {complaint.escalationLevel}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">

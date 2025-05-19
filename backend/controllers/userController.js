@@ -6,8 +6,6 @@ exports.assignRole = catchAsync(async (req, res, next) => {
   const { role, assignedLocation } = req.body;
   const userId = req.params.id;
 
-  console.log(req.user.role);
-
   
   if (
     req.user.role === "district_admin" &&

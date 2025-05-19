@@ -130,14 +130,28 @@ export interface Announcement {
 
 export interface Complaint {
   _id: string;
-  category: string;
+  title: string;
   description: string;
-  location: string;
   status: string;
-  createdBy: string;
+  location: {
+    district: string;
+    sector: string;
+  };
+  user: {
+    _id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
+  sectorAdmin?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  escalationLevel: number;
   createdAt: string;
-  updatedAt: string;
   __v: number;
+  id: string;
 }
 
 
