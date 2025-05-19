@@ -4,7 +4,7 @@ const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const Group = require("../models/Group");
 
-// Protect routes - only logged in users can access
+
 exports.protect = async (req, res, next) => {
   try {
     let token;
@@ -21,10 +21,10 @@ exports.protect = async (req, res, next) => {
       );
     }
 
-    // Verify token
+    
     const decoded = await jwt.verify(token, process.env.JWT_SECRET);
 
-    // Check if user still exists
+    
     const currentUser = await User.findById(decoded.id);
     if (!currentUser) {
       return next(
@@ -32,7 +32,7 @@ exports.protect = async (req, res, next) => {
       );
     }
 
-    // Grant access to protected route
+    
     req.user = currentUser;
     next();
   } catch (err) {
@@ -40,7 +40,7 @@ exports.protect = async (req, res, next) => {
   }
 };
 
-// Restrict to certain roles
+
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
@@ -52,7 +52,7 @@ exports.restrictTo = (...roles) => {
   };
 };
 
-// Check if user can access complaint
+
 exports.checkComplaintOwnership = async (req, res, next) => {
   try {
     const complaint = await Complaint.findById(req.params.id);
@@ -61,10 +61,10 @@ exports.checkComplaintOwnership = async (req, res, next) => {
       return next(new AppError("No complaint found with that ID", 404));
     }
 
-    // Super admin can access all complaints
+    
     if (req.user.role === "super_admin") return next();
 
-    // District admin can access complaints from their district
+    
     if (
       req.user.role === "district_admin" &&
       complaint.location.district === req.user.assignedLocation.district
@@ -72,7 +72,7 @@ exports.checkComplaintOwnership = async (req, res, next) => {
       return next();
     }
 
-    // Sector admin can access complaints from their sector
+    
     if (
       req.user.role === "sector_admin" &&
       complaint.location.sector === req.user.assignedLocation.sector
@@ -80,7 +80,7 @@ exports.checkComplaintOwnership = async (req, res, next) => {
       return next();
     }
 
-    // Citizen can only access their own complaints
+    
     if (
       req.user.role === "citizen" &&
       complaint.user._id.toString() === req.user._id.toString()
@@ -100,17 +100,17 @@ exports.authorizeReportAccess = (reportType) => {
   return (req, res, next) => {
     const userRole = req.user.role;
 
-    // Super Admin can access all reports
+    
     if (userRole === "super_admin") return next();
 
-    // District Admin can access district-level reports
+    
     if (
       userRole === "district_admin" &&
       ["complaints", "feedback"].includes(reportType)
     )
       return next();
 
-    // Sector Admin can only access sector-level complaint reports
+    
     if (userRole === "sector_admin" && reportType === "complaints")
       return next();
 

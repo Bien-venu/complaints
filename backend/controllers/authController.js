@@ -1,8 +1,9 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const AppError = require("../utils/appError");
+const groupController = require("../controllers/groupController");
 const catchAsync = require("../utils/catchAsync");
-const bcrypt = require("bcryptjs"); // Ensure bcrypt is imported here as well
+const bcrypt = require("bcryptjs"); 
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -13,7 +14,7 @@ const signToken = (id) => {
 const createSendToken = (user, statusCode, res) => {
   const token = signToken(user._id);
 
-  // Remove password from output
+  
   user.password = undefined;
 
   res.status(statusCode).json({
@@ -28,14 +29,14 @@ const createSendToken = (user, statusCode, res) => {
 exports.register = catchAsync(async (req, res, next) => {
   const { name, email, password, role, assignedLocation } = req.body;
 
-  // Temporary override - allow admin creation if no users exist
+  
   const userCount = await User.countDocuments();
   if (
     userCount === 0 &&
     role &&
     ["super_admin", "district_admin", "sector_admin"].includes(role)
   ) {
-    // Allow admin creation for first user
+    
   } else if (role && role !== "citizen") {
     return next(
       new AppError(
@@ -52,6 +53,8 @@ exports.register = catchAsync(async (req, res, next) => {
     role: role || "citizen",
     assignedLocation,
   });
+  
+  await groupController.autoJoinGroups(newUser);
 
   createSendToken(newUser, 201, res);
 });
@@ -59,19 +62,20 @@ exports.register = catchAsync(async (req, res, next) => {
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
-  // 1) Check if email and password exist
+  
+  
   if (!email || !password) {
     return next(new AppError("Please provide email and password!", 400));
   }
 
-  // 2) Check if user exists and password is correct
+  
   const user = await User.findOne({ email }).select("+password");
-
+  
   if (!user) {
     return next(new AppError("Incorrect email or password", 401));
   }
-
-
+  
+  
   const hashedInputPassword = await bcrypt.hash(password, 12);
 
   const isMatchDirectly = await bcrypt.compare("bienvenu1234", user.password);
@@ -81,14 +85,44 @@ exports.login = catchAsync(async (req, res, next) => {
   if (!isPasswordCorrect) {
     return next(new AppError("Incorrect email or password", 401));
   }
-
-  // 3) If everything ok, send token to client
+  
+  console.log("user", user);
+  console.log("user", req.body);
+  
   createSendToken(user, 200, res);
 });
 
-// authController.js
+exports.getMe = catchAsync(async (req, res, next) => {
+  
+  const currentUser = req.user;
+
+  if (!currentUser) {
+    return next(new AppError("User not found", 404));
+  }
+
+  
+  const userData = {
+    id: currentUser._id,
+    name: currentUser.name,
+    email: currentUser.email,
+    role: currentUser.role,
+    assignedLocation: currentUser.assignedLocation,
+    createdAt: currentUser.createdAt,
+    updatedAt: currentUser.updatedAt,
+  };
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user: userData,
+    },
+  });
+});
+
+
+
 exports.protect = catchAsync(async (req, res, next) => {
-  // 1) Check if token exists
+  
   let token;
   if (
     req.headers.authorization &&
@@ -103,10 +137,10 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
-  // 2) Verify token
+  
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-  // 3) Check if user still exists
+  
   const currentUser = await User.findById(decoded.id);
   if (!currentUser) {
     return next(
@@ -114,7 +148,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
-  // 4) Grant access
+  
   req.user = currentUser;
   next();
 });

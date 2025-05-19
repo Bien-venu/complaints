@@ -1,22 +1,19 @@
 import type React from "react"
-import { Abel } from "next/font/google"
-import { Providers } from "@/lib/providers"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import { ReduxProvider } from "@/redux/provider"
 
-// Initialize the Abel font
-const abel = Abel({
-  weight: "400",
-  subsets: ["latin"],
-  display: "swap",
-})
+const inter = Inter({ subsets: ["latin"] })
 
-export const metadata = {
-  title: "CitizenConnect | Public Complaint Portal",
-  description: "A seamless platform for citizens to submit and track complaints",
-    generator: 'v0.dev'
-}
+export const metadata: Metadata = {
+  title: "Citizen Complaints and Engagement System",
+  description:
+    "A platform for citizens to submit complaints and engage with government officials",
+  authors: [
+    { name: "Ishimwe Sibomana Bienvenu", url: "https://bienvenu.vercel.app/" },
+  ],
+};
 
 export default function RootLayout({
   children,
@@ -24,14 +21,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={abel.className}>
-      <body className="bg-white text-black">
-        <Providers>
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
-            {children}
-            <Toaster />
-          </ThemeProvider>
-        </Providers>
+    <html lang="en">
+      <body className={inter.className}>
+        <ReduxProvider>{children}</ReduxProvider>
       </body>
     </html>
   )

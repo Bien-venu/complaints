@@ -7,10 +7,10 @@ const {
   checkGroupCreator,
 } = require("../middleware/authMiddleware");
 
-// Protect all routes
+
 router.use(authController.protect);
 
-// Group management
+
 router.post(
   "/",
   authController.restrictTo("district_admin", "sector_admin"),
@@ -27,7 +27,7 @@ router.post(
   groupController.leaveGroup
 );
 
-// Announcements
+
 router.post(
   "/:groupId/announcements",
   checkGroupCreator,
@@ -38,6 +38,18 @@ router.get(
   "/:groupId/announcements",
   checkGroupMembership,
   groupController.getAnnouncements
+);
+
+router.get(
+  "/:groupId/members",
+  authController.protect,
+  groupController.getGroupMembers
+);
+
+router.patch(
+  "/:userId/join",
+  authController.protect,
+  groupController.syncUserGroups
 );
 
 module.exports = router;

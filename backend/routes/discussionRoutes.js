@@ -3,7 +3,6 @@ const router = express.Router();
 const discussionController = require("../controllers/discussionController");
 const authController = require("../controllers/authController");
 
-// Protect all routes
 router.use(authController.protect);
 
 router
@@ -14,11 +13,13 @@ router
     discussionController.createDiscussion
   );
 
+router.get("/:id", discussionController.getDiscussionById);
+
 router.route("/:id/comments").post(discussionController.addComment);
 
 router.route("/:id/resolve").patch(
   authController.restrictTo("sector_admin", "district_admin"),
-  discussionController.markDiscussionAsResolved // Make sure this exists in your controller
+  discussionController.markDiscussionAsResolved
 );
 
 module.exports = router;

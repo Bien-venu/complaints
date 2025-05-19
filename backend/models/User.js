@@ -46,14 +46,14 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// Hash password before saving
+
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-// Method to compare passwords
+
 userSchema.methods.correctPassword = async function (
   candidatePassword,
   userPassword
@@ -61,7 +61,7 @@ userSchema.methods.correctPassword = async function (
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
-// Indexes for performance optimization
+
 userSchema.index({ role: 1 });
 userSchema.index({ "assignedLocation.district": 1 });
 userSchema.index({ "assignedLocation.sector": 1 });

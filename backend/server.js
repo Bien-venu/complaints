@@ -12,22 +12,20 @@ const cookieParser = require("cookie-parser");
 const http = require("http");
 const socketIo = require("socket.io");
 const path = require("path");
-// At the top of Discussion.js (or wherever the error happens)
+
 const catchAsync = require("./utils/catchAsync");
 
-// Load env vars
-require("dotenv").config(); 
-// Route files
+
+require("dotenv").config();
+
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const complaintRoutes = require("./routes/complaintRoutes");
 const discussionRoutes = require("./routes/discussionRoutes");
 const feedbackRoutes = require("./routes/feedbackRoutes");
-const messageRoutes = require("./routes/messageRoutes");
-const reportRoutes = require("./routes/reportRoutes");
-const groupRoutes = require("./routes/groupRoutes"); // Add this line
+const groupRoutes = require("./routes/groupRoutes"); 
 
-// Initialize express app
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -41,7 +39,7 @@ const io = socketIo(server, {
   },
 });
 
-// Connect to database
+
 mongoose
   .connect(process.env.DATABASE, {
     useNewUrlParser: true,
@@ -55,11 +53,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// Set up Socket.io
+
 io.on("connection", (socket) => {
   console.log("New client connected");
 
-  // Join room based on user role and ID
+  
   socket.on("joinRoom", ({ userId, role }) => {
     if (role === "citizen") {
       socket.join(`user-${userId}`);
@@ -76,7 +74,7 @@ io.on("connection", (socket) => {
     console.log(`User ${userId} joined room for ${role}`);
   });
 
-  // Add group room joining
+  
   socket.on("joinGroupRoom", (groupId) => {
     socket.join(`group-${groupId}`);
     console.log(`User joined group room ${groupId}`);
@@ -91,7 +89,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// Global middleware
+
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
@@ -102,12 +100,12 @@ app.use(helmet());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Security middleware
+
 app.use(mongoSanitize());
 app.use(xss());
 app.use(hpp());
 
-// Rate limiting
+
 const limiter = rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000,
@@ -115,25 +113,21 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
-// Dev logging middleware
+
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-// Mount routers
+
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/discussions", discussionRoutes);
 app.use("/api/feedback", feedbackRoutes);
-app.use("/api/messages", messageRoutes);
-app.use("/api/reports", reportRoutes);
-app.use("/api/groups", groupRoutes); // Add this line
+app.use("/api/groups", groupRoutes); 
 
-// Attach io instance to app for use in controllers
 app.set("io", io);
 
-// Health check endpoint
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     status: "success",
@@ -142,12 +136,11 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 
-  // Log error in development
+  
   if (process.env.NODE_ENV === "development") {
     console.error("Error:", err.stack);
   }
@@ -160,7 +153,7 @@ app.use((err, req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
-  // Add these specific error messages
+  
   const groupErrors = [
     "Group not found",
     "You are not a member of this group",
@@ -172,11 +165,11 @@ app.use((err, req, res, next) => {
     err.statusCode = err.statusCode || 403;
   }
 
-  // Rest of the error handling remains the same
+  
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 
-  // ... rest of the error handler
+  
 });
 
 const port = process.env.PORT || 3000;
@@ -186,7 +179,7 @@ server.listen(port, () => {
   );
 });
 
-// Handle unhandled promise rejections
+
 process.on("unhandledRejection", (err) => {
   console.log("UNHANDLED REJECTION! Shutting down...");
   console.log(err.name, err.message);
@@ -195,7 +188,7 @@ process.on("unhandledRejection", (err) => {
   });
 });
 
-// Handle SIGTERM for graceful shutdown
+
 process.on("SIGTERM", () => {
   console.log("SIGTERM RECEIVED. Shutting down gracefully");
   server.close(() => {

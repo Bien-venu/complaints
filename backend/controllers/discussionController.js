@@ -18,13 +18,13 @@ exports.createDiscussion = catchAsync(async (req, res, next) => {
   });
 
   try {
-    // Check if Socket.IO is available
+    
     if (!req.io) {
       console.warn(
         "Socket.IO not available - proceeding without realtime notification"
       );
     } else {
-      // Notify relevant admins
+      
       req.io
         .to(`district-${req.user.assignedLocation.district}`)
         .emit("newDiscussion", discussion);
@@ -34,7 +34,7 @@ exports.createDiscussion = catchAsync(async (req, res, next) => {
     }
   } catch (ioError) {
     console.error("Socket.IO error:", ioError);
-    // Continue even if Socket.IO fails
+    
   }
 
   res.status(201).json({
@@ -55,13 +55,13 @@ exports.addComment = catchAsync(async (req, res, next) => {
     return next(new AppError("No discussion found with that ID", 404));
   }
 
-  // Check if user can comment (citizens or admins from the same location)
+  
   if (
     req.user.role === "citizen" &&
-    discussion.createdBy.toString() !== req.user._id.toString()
+    discussion.location.sector !== req.user.assignedLocation.sector
   ) {
     return next(
-      new AppError("You can only comment on your own discussions", 403)
+      new AppError("You can only comment on discussions in your sector", 403)
     );
   }
 
@@ -92,7 +92,7 @@ exports.addComment = catchAsync(async (req, res, next) => {
   discussion.comments.push(comment);
   await discussion.save();
 
-  // Notify participants
+  
   req.io
     .to(`discussion-${discussion._id}`)
     .emit("newComment", { discussionId, comment });
@@ -114,7 +114,7 @@ exports.markDiscussionAsResolved = catchAsync(async (req, res, next) => {
     return next(new AppError("No discussion found with that ID", 404));
   }
 
-  // Only admins from the same location can resolve
+  
   if (
     req.user.role === "sector_admin" &&
     discussion.location.sector !== req.user.assignedLocation.sector
@@ -137,7 +137,7 @@ exports.markDiscussionAsResolved = catchAsync(async (req, res, next) => {
   discussion.resolvedAt = new Date();
   await discussion.save();
 
-  // Notify participants
+  
   req.io
     .to(`discussion-${discussion._id}`)
     .emit("discussionResolved", discussion);
@@ -151,25 +151,26 @@ exports.markDiscussionAsResolved = catchAsync(async (req, res, next) => {
 });
 
 exports.getAllDiscussions = catchAsync(async (req, res, next) => {
-  // Build filter based on user role
+  
   const filter = {};
 
-  // Citizens can only see their own discussions
+  
   if (req.user.role === "citizen") {
-    filter.createdBy = req.user._id;
+    filter["location.sector"] = req.user.assignedLocation.sector;
+    filter["location.district"] = req.user.assignedLocation.district;
   }
-  // Sector admins see discussions in their sector
+  
   else if (req.user.role === "sector_admin") {
     filter["location.sector"] = req.user.assignedLocation.sector;
     filter["location.district"] = req.user.assignedLocation.district;
   }
-  // District admins see discussions in their district
+  
   else if (req.user.role === "district_admin") {
     filter["location.district"] = req.user.assignedLocation.district;
   }
-  // Super admins can see all discussions (no filter)
+  
 
-  // Optional query parameters
+  
   if (req.query.status) {
     filter.status = req.query.status;
   }
@@ -187,6 +188,51 @@ exports.getAllDiscussions = catchAsync(async (req, res, next) => {
     results: discussions.length,
     data: {
       discussions,
+    },
+  });
+});
+
+exports.getDiscussionById = catchAsync(async (req, res, next) => {
+  const discussion = await Discussion.findById(req.params.id)
+    .populate("createdBy", "name email role")
+    .populate("comments.user", "name email role");
+
+  if (!discussion) {
+    return next(new AppError("No discussion found with that ID", 404));
+  }
+
+  
+  if (req.user.role === "citizen") {
+      if (
+        discussion.location.district !== req.user.assignedLocation.district ||
+        discussion.location.sector !== req.user.assignedLocation.sector
+      ) {
+        return next(
+          new AppError("You can only view discussions in your sector", 403)
+        );
+      }
+  } else if (req.user.role === "sector_admin") {
+    if (
+      discussion.location.district !== req.user.assignedLocation.district ||
+      discussion.location.sector !== req.user.assignedLocation.sector
+    ) {
+      return next(
+        new AppError("You can only view discussions in your sector", 403)
+      );
+    }
+  } else if (req.user.role === "district_admin") {
+    if (discussion.location.district !== req.user.assignedLocation.district) {
+      return next(
+        new AppError("You can only view discussions in your district", 403)
+      );
+    }
+  }
+  
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      discussion,
     },
   });
 });

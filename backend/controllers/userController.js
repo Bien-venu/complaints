@@ -6,11 +6,16 @@ exports.assignRole = catchAsync(async (req, res, next) => {
   const { role, assignedLocation } = req.body;
   const userId = req.params.id;
 
-  console.log(req.user);
+  console.log(req.user.role);
 
-  // 1) Check if the requesting user has permission to assign this role
-  if (req.user.role === "district_admin" && role !== "sector_admin") {
-    return next(new AppError("You can only assign sector admin roles", 403));
+  
+  if (
+    req.user.role === "district_admin" &&
+    !["sector_admin", "citizen"].includes(role)
+  ) {
+    return next(
+      new AppError("You can only assign sector admin or citizen roles", 403)
+    );
   }
 
   if (
@@ -22,13 +27,13 @@ exports.assignRole = catchAsync(async (req, res, next) => {
     );
   }
 
-  // 2) Check if the assigned location is under the admin's jurisdiction
+  
   if (
     req.user.role === "district_admin" &&
     assignedLocation.district !== req.user.assignedLocation.district
   ) {
     return next(
-      new AppError("You can only assign admins within your district", 403)
+      new AppError("You can only assign users within your district", 403)
     );
   }
 
@@ -37,11 +42,11 @@ exports.assignRole = catchAsync(async (req, res, next) => {
     assignedLocation.province !== req.user.assignedLocation.province
   ) {
     return next(
-      new AppError("You can only assign admins within your province", 403)
+      new AppError("You can only assign users within your province", 403)
     );
   }
 
-  // 3) Update user role and location
+  
   const user = await User.findByIdAndUpdate(
     userId,
     {
@@ -65,6 +70,7 @@ exports.assignRole = catchAsync(async (req, res, next) => {
     },
   });
 });
+
 
 exports.getAllUsers = catchAsync(async (req, res, next) => {
   const users = await User.find();

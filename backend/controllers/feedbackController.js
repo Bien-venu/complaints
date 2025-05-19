@@ -19,7 +19,7 @@ exports.submitFeedback = catchAsync(async (req, res, next) => {
 });
 
 exports.getFeedbackAnalytics = catchAsync(async (req, res, next) => {
-  // District admins only see their district's feedback
+  
   const filter = {};
   if (req.user.role === "district_admin") {
     filter["location.district"] = req.user.assignedLocation.district;

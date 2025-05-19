@@ -40,7 +40,7 @@ const groupSchema = new mongoose.Schema({
   },
 });
 
-// Indexes for performance
+
 groupSchema.index({ "location.province": 1 });
 groupSchema.index({ "location.district": 1 });
 groupSchema.index({ "location.sector": 1 });

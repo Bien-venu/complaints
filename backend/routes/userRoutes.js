@@ -4,12 +4,11 @@ const authController = require("../controllers/authController");
 
 const router = express.Router();
 
-// Protect all routes after this middleware
+
 router.use(authController.protect);
 
 router.get(
   "/",
-  authController.restrictTo("super_admin", "district_admin"),
   userController.getAllUsers
 );
 router.post(
@@ -17,5 +16,7 @@ router.post(
   authController.restrictTo("super_admin", "district_admin"),
   userController.assignRole
 );
+
+router.get("/me", authController.getMe);
 
 module.exports = router;

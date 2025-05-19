@@ -64,7 +64,7 @@ const discussionSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for optimized queries
+
 discussionSchema.index({ status: 1 });
 discussionSchema.index({ createdBy: 1 });
 discussionSchema.index({ "location.district": 1 });
@@ -88,7 +88,7 @@ exports.createDiscussion = catchAsync(async (req, res, next) => {
     tags,
   });
 
-  // Notify relevant admins via WebSocket
+  
   req.io
     .to(`district-${req.user.assignedLocation.district}`)
     .emit("newDiscussion", discussion);
@@ -108,7 +108,7 @@ exports.addComment = catchAsync(async (req, res, next) => {
 
   if (!discussion) return next(new AppError("Discussion not found", 404));
 
-  // Authorization checks
+  
   if (
     req.user.role === "citizen" &&
     discussion.createdBy.toString() !== req.user._id.toString()
@@ -145,7 +145,7 @@ exports.addComment = catchAsync(async (req, res, next) => {
   discussion.comments.push(comment);
   await discussion.save();
 
-  // Real-time notification
+  
   req.io
     .to(`discussion-${discussion._id}`)
     .emit("newComment", { discussionId: discussion._id, comment });
@@ -161,7 +161,7 @@ exports.resolveDiscussion = catchAsync(async (req, res, next) => {
 
   if (!discussion) return next(new AppError("Discussion not found", 404));
 
-  // Authorization
+  
   if (
     req.user.role === "sector_admin" &&
     discussion.location.sector !== req.user.assignedLocation.sector
@@ -184,7 +184,7 @@ exports.resolveDiscussion = catchAsync(async (req, res, next) => {
   discussion.resolvedAt = new Date();
   await discussion.save();
 
-  // Notify participants
+  
   req.io
     .to(`discussion-${discussion._id}`)
     .emit("discussionResolved", discussion);

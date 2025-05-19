@@ -39,7 +39,7 @@ const feedbackSchema = new mongoose.Schema({
   },
 });
 
-// Indexes for analytics
+
 feedbackSchema.index({ serviceType: 1 });
 feedbackSchema.index({ rating: 1 });
 feedbackSchema.index({ "location.district": 1 });

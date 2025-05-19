@@ -55,7 +55,7 @@ const complaintSchema = new mongoose.Schema(
   }
 );
 
-// Indexes for performance optimization
+
 complaintSchema.index({ status: 1 });
 complaintSchema.index({ user: 1 });
 complaintSchema.index({ sectorAdmin: 1 });
@@ -64,7 +64,7 @@ complaintSchema.index({ "location.sector": 1 });
 complaintSchema.index({ "location.district": 1 });
 complaintSchema.index({ createdAt: -1 });
 
-// Populate user data when querying complaints
+
 complaintSchema.pre(/^find/, function (next) {
   this.populate({
     path: "user",
